@@ -34,7 +34,7 @@ export default function NetworkPage() {
 
       // Fetch Top 100 users
       const { data: topUsers, error } = await supabase
-        .from("profiles")
+        .from("users") 
         .select("wallet_address, username, xp, streak")
         .order("xp", { ascending: false })
         .limit(100);
