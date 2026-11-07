@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Activity, Trophy, Zap, User } from "lucide-react";
-import { useWallet } from "@solana/wallet-adapter-react"; // Import wallet hook
-import { createClient } from "@supabase/supabase-js"; // Import Supabase
+import { Activity, Trophy, Zap, User, AlertCircle } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { createClient } from "@supabase/supabase-js";
 import MonthlyAirdropBanner from "@/components/MonthlyAirdropBanner";
 
-// Initialize Supabase (Put these in your .env.local file!)
+// Initialize Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -17,35 +17,37 @@ type UserData = {
   username: string;
   xp: number;
   streak: number;
-  rank?: number; // Calculated dynamically
+  rank?: number;
 };
 
 export default function NetworkPage() {
-  const { publicKey, connected } = useWallet(); // Get connected wallet
+  const { publicKey, connected } = useWallet();
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [leaderboard, setLeaderboard] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null); // New state for errors
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setIsLoading(true);
+      setDbError(null);
 
-      // 1. Fetch the Top 100 REAL users from your database
-      // We order by 'xp' descending, and limit to 100.
+      // Fetch Top 100 users
       const { data: topUsers, error } = await supabase
-        .from("users") // Make sure this matches your actual table name
+        .from("users") 
         .select("wallet_address, username, xp, streak")
         .order("xp", { ascending: false })
         .limit(100);
 
       if (error) {
-        console.error("Error fetching leaderboard:", error);
+        console.error("Supabase Error:", error);
+        setDbError(error.message); // Show error on screen
         setIsLoading(false);
         return;
       }
 
       if (topUsers) {
-        // 2. Add the Rank number dynamically based on their position in the array
+        // Add rank dynamically (1, 2, 3...)
         const rankedUsers = topUsers.map((user, index) => ({
           ...user,
           rank: index + 1,
@@ -53,21 +55,19 @@ export default function NetworkPage() {
 
         setLeaderboard(rankedUsers);
 
-        // 3. Find the current logged-in user in the list
+        // Find current logged-in user
         if (connected && publicKey) {
           const walletAddress = publicKey.toBase58();
-          const me = rankedUsers.find(
-            (u) => u.wallet_address === walletAddress
-          );
+          const me = rankedUsers.find((u) => u.wallet_address === walletAddress);
 
-          // If they are in the Top 100, set their data. If not, they are "Unranked"
+          // If they are in the list, show their data. If not, set to unranked.
           setCurrentUser(
             me || {
               wallet_address: walletAddress,
               username: "Unranked",
               xp: 0,
               streak: 0,
-              rank: 999, // Fake rank to show "Unranked" in the UI
+              rank: 999, 
             }
           );
         } else {
@@ -79,22 +79,23 @@ export default function NetworkPage() {
     };
 
     fetchLeaderboard();
-
-    // Optional: Re-fetch every 30 seconds to keep it live
     const interval = setInterval(fetchLeaderboard, 30000);
     return () => clearInterval(interval);
-  }, [connected, publicKey]); // Re-run when wallet connects/disconnects
+  }, [connected, publicKey]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#030303] flex items-center justify-center text-white">
         <div className="animate-pulse flex flex-col items-center">
           <Activity className="w-10 h-10 text-cyan-400 mb-4 animate-spin" />
-          <p>Loading Real Network Data...</p>
+          <p>Syncing Database...</p>
         </div>
       </div>
     );
   }
+
+  // Determine qualification logic (If there are less than 100 users, everyone in the list is qualified)
+  const isQualifiedForAirdrop = currentUser && currentUser.rank && currentUser.rank <= 100;
 
   return (
     <div className="min-h-screen bg-[#030303] text-white font-sans selection:bg-purple-500/30">
@@ -113,7 +114,19 @@ export default function NetworkPage() {
           </h1>
         </div>
 
-        {/* Airdrop Banner */}
+        {/* Show Database Error if it fails */}
+        {dbError && (
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3">
+            <AlertCircle className="text-red-400 w-6 h-6" />
+            <div>
+              <p className="text-red-400 font-bold">Database Connection Error</p>
+              <p className="text-red-300 text-sm">{dbError}</p>
+              <p className="text-gray-400 text-xs mt-1">Check your Vercel Environment Variables and Supabase RLS policies.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Airdrop Banner (Dynamically updates based on rank) */}
         <MonthlyAirdropBanner 
           currentRank={currentUser?.rank || 0} 
           currentXp={currentUser?.xp || 0} 
@@ -136,9 +149,7 @@ export default function NetworkPage() {
                 
                 {connected ? (
                    <h3 className="text-7xl font-bold text-white mb-8">
-                     {currentUser && currentUser.rank && currentUser.rank <= 100 
-                       ? `#${currentUser.rank}` 
-                       : "Unranked"}
+                     {isQualifiedForAirdrop ? `#${currentUser.rank}` : "Unranked"}
                    </h3>
                 ) : (
                   <h3 className="text-3xl font-bold text-gray-500 mb-8 mt-6">Connect Wallet</h3>
@@ -179,7 +190,11 @@ export default function NetworkPage() {
 
               <div className="space-y-3">
                 {leaderboard.length === 0 ? (
-                  <p className="text-gray-500 text-center py-10">No users found. Be the first to earn XP!</p>
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                    <User className="w-12 h-12 mb-3 opacity-20" />
+                    <p>No users found in database.</p>
+                    <p className="text-sm mt-1">Make sure your users table has rows and RLS is configured.</p>
+                  </div>
                 ) : (
                   leaderboard.map((user) => (
                     <div 
@@ -209,7 +224,6 @@ export default function NetworkPage() {
                             <p className="text-white font-bold text-sm">
                               {user.username || "Anonymous"}
                             </p>
-                            {/* Show shortened wallet address */}
                             <p className="text-gray-500 text-xs font-mono">
                               {user.wallet_address ? `${user.wallet_address.slice(0,4)}...${user.wallet_address.slice(-4)}` : "Unknown"}
                             </p>
