@@ -30,12 +30,34 @@ export default function Home() {
 
       <Header />
 
+      {/* 🚨 LIVE STREAM BANNER (THE FLEX) 🚨 */}
+      <div className="w-full bg-gradient-to-r from-red-900/40 via-purple-900/40 to-red-900/40 border-b border-red-500/30 flex items-center justify-center py-2.5 px-4 relative z-50 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_10px_#ef4444]"></span>
+          </span>
+          <p className="text-white font-mono text-xs md:text-sm font-bold tracking-wider">
+            DEV IS LIVE ON PUMP.FUN RIGHT NOW. 
+            <a 
+              href="https://pump.fun" // 👈 REPLACE THIS WITH YOUR ACTUAL PUMP.FUN STREAM LINK
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="underline text-red-300 hover:text-white transition-colors ml-2"
+            >
+              CLICK TO WATCH
+            </a>
+          </p>
+        </div>
+      </div>
+      {/* ---------------------------------- */}
+
       <div className="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
         
         {/* GLOWING BADGE */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} 
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-gray-300 mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-gray-300 mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.05)] mt-8"
         >
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_10px_#4ade80]" /> 
           SOLANA MAINNET · LIVE PROTOCOL DATA
