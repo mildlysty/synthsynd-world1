@@ -6,6 +6,7 @@ import { Activity, Trophy, Zap, User, AlertCircle } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { supabase } from "@/lib/supabaseClient"; 
 import MonthlyAirdropBanner from "@/components/MonthlyAirdropBanner";
+import TreasuryDashboard from "@/components/TreasuryDashboard"; // 🚨 NEW TREASURY IMPORT
 
 type UserData = {
   wallet_address: string;
@@ -118,10 +119,14 @@ export default function NetworkPage() {
           </div>
         )}
 
+        {/* Monthly Airdrop Banner */}
         <MonthlyAirdropBanner 
           currentRank={currentUser?.rank || 0} 
           currentXp={currentUser?.xp || 0} 
         />
+
+        {/* 🚨 NEW: PROTOCOL TREASURY DASHBOARD 🚨 */}
+        <TreasuryDashboard />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           
