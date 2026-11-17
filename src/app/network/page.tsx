@@ -6,7 +6,7 @@ import { Activity, Trophy, Zap, User, AlertCircle } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { supabase } from "@/lib/supabaseClient"; 
 import MonthlyAirdropBanner from "@/components/MonthlyAirdropBanner";
-import TreasuryDashboard from "@/components/TreasuryDashboard"; // 🚨 NEW TREASURY IMPORT
+import TreasuryDashboard from "@/components/TreasuryDashboard";
 
 type UserData = {
   wallet_address: string;
@@ -28,7 +28,6 @@ export default function NetworkPage() {
       setIsLoading(true);
       setDbError(null);
 
-      // 1. Fetch Top 100 from the PROFILES table
       const { data: topUsers, error } = await supabase
         .from("profiles") 
         .select("wallet_address, username, xp, current_streak") 
@@ -43,7 +42,6 @@ export default function NetworkPage() {
       }
 
       if (topUsers) {
-        // 2. Add dynamic ranks
         const rankedUsers = topUsers.map((user, index) => ({
           ...user,
           rank: index + 1,
@@ -51,7 +49,6 @@ export default function NetworkPage() {
 
         setLeaderboard(rankedUsers);
 
-        // 3. Find the current connected user
         if (connected && publicKey) {
           const walletAddress = publicKey.toBase58();
           const me = rankedUsers.find((u) => u.wallet_address === walletAddress);
@@ -74,8 +71,6 @@ export default function NetworkPage() {
     };
 
     fetchLeaderboard();
-    
-    // Auto-refresh leaderboard every 30 seconds
     const interval = setInterval(fetchLeaderboard, 30000);
     return () => clearInterval(interval);
   }, [connected, publicKey]);
@@ -85,7 +80,7 @@ export default function NetworkPage() {
       <div className="min-h-screen bg-[#030303] flex items-center justify-center text-white">
         <div className="animate-pulse flex flex-col items-center">
           <Activity className="w-10 h-10 text-cyan-400 mb-4 animate-spin" />
-          <p>Syncing Database...</p>
+          <p className="text-sm md:text-base">Syncing Database...</p>
         </div>
       </div>
     );
@@ -94,77 +89,79 @@ export default function NetworkPage() {
   const isQualifiedForAirdrop = currentUser && currentUser.rank && currentUser.rank <= 100;
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white font-sans selection:bg-purple-500/30">
+    <div className="min-h-screen bg-[#030303] text-white font-sans selection:bg-purple-500/30 overflow-x-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
         
-        <div className="flex flex-col mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 w-fit mb-6">
+        {/* Header */}
+        <div className="flex flex-col mb-8 md:mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 w-fit mb-4 md:mb-6">
             <Activity className="w-4 h-4 text-cyan-400 animate-pulse" />
-            <span className="text-xs font-bold tracking-wider text-gray-300 uppercase">Live Network Monitor</span>
+            <span className="text-[10px] md:text-xs font-bold tracking-wider text-gray-300 uppercase">Live Network Monitor</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
             Syndicate <span className="text-gray-500">Network</span>
           </h1>
         </div>
 
         {dbError && (
           <div className="mb-8 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3">
-            <AlertCircle className="text-red-400 w-6 h-6" />
+            <AlertCircle className="text-red-400 w-6 h-6 flex-shrink-0" />
             <div>
-              <p className="text-red-400 font-bold">Database Connection Error</p>
-              <p className="text-red-300 text-sm">{dbError}</p>
+              <p className="text-red-400 font-bold text-sm md:text-base">Database Connection Error</p>
+              <p className="text-red-300 text-xs md:text-sm">{dbError}</p>
             </div>
           </div>
         )}
 
-        {/* Monthly Airdrop Banner */}
+        {/* Airdrop Banner */}
         <MonthlyAirdropBanner 
           currentRank={currentUser?.rank || 0} 
           currentXp={currentUser?.xp || 0} 
         />
 
-        {/* 🚨 NEW: PROTOCOL TREASURY DASHBOARD 🚨 */}
+        {/* Treasury Dashboard */}
         <TreasuryDashboard />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        {/* Main Grid Layout (Stacks on mobile, side-by-side on desktop) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
           
           {/* Left Column: Your Standing */}
           <div className="lg:col-span-1">
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 relative overflow-hidden flex flex-col h-full shadow-lg">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden flex flex-col h-full shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none"></div>
               
-              <div className="flex items-center gap-2 text-gray-400 mb-8">
-                <User className="w-5 h-5" />
-                <h2 className="text-sm font-bold uppercase tracking-wider">Your Standing</h2>
+              <div className="flex items-center gap-2 text-gray-400 mb-6 md:mb-8">
+                <User className="w-4 h-4 md:w-5 md:h-5" />
+                <h2 className="text-xs md:text-sm font-bold uppercase tracking-wider">Your Standing</h2>
               </div>
 
-              <div className="flex flex-col items-center justify-center mb-10 flex-grow">
-                <p className="text-gray-400 text-sm mb-2">Current Rank</p>
+              <div className="flex flex-col items-center justify-center mb-8 md:mb-10 flex-grow">
+                <p className="text-gray-400 text-xs md:text-sm mb-2">Current Rank</p>
                 
                 {connected ? (
-                   <h3 className="text-7xl font-bold text-white mb-8">
+                   <h3 className="text-5xl md:text-7xl font-bold text-white mb-6 md:mb-8">
                      {isQualifiedForAirdrop ? `#${currentUser.rank}` : "Unranked"}
                    </h3>
                 ) : (
-                  <h3 className="text-3xl font-bold text-gray-500 mb-8 mt-6">Connect Wallet</h3>
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-500 mb-6 md:mb-8 mt-4 md:mt-6">Connect Wallet</h3>
                 )}
                 
-                <div className="w-full flex justify-between items-end border-t border-white/10 pt-6">
+                <div className="w-full flex justify-between items-end border-t border-white/10 pt-4 md:pt-6">
                   <div>
-                    <p className="text-gray-500 text-xs mb-1 uppercase tracking-wider">Your XP</p>
-                    <p className="text-2xl font-bold text-white">{connected ? currentUser?.xp || 0 : 0} <span className="text-sm text-gray-500">XP</span></p>
+                    <p className="text-gray-500 text-[10px] md:text-xs mb-1 uppercase tracking-wider">Your XP</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{connected ? currentUser?.xp || 0 : 0} <span className="text-xs md:text-sm text-gray-500">XP</span></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-500 text-xs mb-1 uppercase tracking-wider">Streak</p>
-                    <p className="text-2xl font-bold text-orange-500">{connected ? currentUser?.current_streak || 0 : 0} <span className="text-sm text-orange-500/70">Days</span></p>
+                    <p className="text-gray-500 text-[10px] md:text-xs mb-1 uppercase tracking-wider">Streak</p>
+                    <p className="text-xl md:text-2xl font-bold text-orange-500">{connected ? currentUser?.current_streak || 0 : 0} <span className="text-xs md:text-sm text-orange-500/70">Days</span></p>
                   </div>
                 </div>
               </div>
 
               <Link href="/profile" className="w-full block">
-                <button className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 rounded-xl transition-all">
+                <button className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 rounded-xl transition-all text-sm md:text-base">
                   Go to Dashboard
                 </button>
               </Link>
@@ -173,33 +170,33 @@ export default function NetworkPage() {
 
           {/* Right Column: Global Leaderboard */}
           <div className="lg:col-span-2">
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 relative overflow-hidden h-full shadow-lg">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-4 md:p-8 relative overflow-hidden h-full shadow-lg">
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 blur-3xl rounded-full pointer-events-none"></div>
 
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Trophy className="w-6 h-6 text-yellow-500" />
-                  <h2 className="text-xl font-bold text-white">Global Leaderboard</h2>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-2">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
+                  <h2 className="text-lg md:text-xl font-bold text-white">Global Leaderboard</h2>
                 </div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Top 100 Real Users</p>
+                <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wider">Top 100 Real Users</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {leaderboard.length === 0 ? (
-                  <p className="text-gray-500 text-center py-10">No users found in database.</p>
+                  <p className="text-gray-500 text-center py-10 text-sm md:text-base">No users found in database.</p>
                 ) : (
                   leaderboard.map((user) => (
                     <div 
                       key={user.wallet_address}
-                      className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      className={`flex items-center justify-between p-3 md:p-4 rounded-xl border transition-all ${
                         user.rank === 1 ? "bg-yellow-500/5 border-yellow-500/20" : 
                         user.rank === 2 ? "bg-gray-400/5 border-gray-400/20" :
                         user.rank === 3 ? "bg-orange-500/5 border-orange-500/20" : 
                         "bg-white/5 border-white/5 hover:border-white/10"
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+                        <div className={`w-6 h-6 md:w-8 md:h-8 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-xs md:text-sm ${
                           user.rank === 1 ? "bg-yellow-500 text-black" : 
                           user.rank === 2 ? "bg-gray-400 text-black" :
                           user.rank === 3 ? "bg-orange-500 text-white" : 
@@ -208,24 +205,24 @@ export default function NetworkPage() {
                           {user.rank}
                         </div>
                         
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                            <User className="w-5 h-5 text-gray-400" />
+                        <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                          <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                            <User className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                           </div>
-                          <div>
-                            <p className="text-white font-bold text-sm">
+                          <div className="truncate">
+                            <p className="text-white font-bold text-xs md:text-sm truncate">
                               {user.username || "Anonymous"}
                             </p>
-                            <p className="text-gray-500 text-xs font-mono">
+                            <p className="text-gray-500 text-[10px] md:text-xs font-mono truncate">
                               {user.wallet_address ? `${user.wallet_address.slice(0,4)}...${user.wallet_address.slice(-4)}` : "Unknown"}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-cyan-400" />
-                        <p className="text-white font-bold">{user.xp.toLocaleString()} <span className="text-gray-500 text-sm">XP</span></p>
+                      <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                        <Zap className="w-3 h-3 md:w-4 md:h-4 text-cyan-400" />
+                        <p className="text-white font-bold text-xs md:text-base">{user.xp.toLocaleString()} <span className="text-gray-500 text-[10px] md:text-sm">XP</span></p>
                       </div>
                     </div>
                   ))
