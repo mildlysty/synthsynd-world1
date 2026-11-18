@@ -4,7 +4,7 @@ import { DynamicAgentView } from "@/components/DynamicAgentView";
 // 1. The main export is a standard synchronous component
 export default function DynamicAgentPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    // 2. We wrap the data-fetching part in Suspense
+    
     <Suspense 
       fallback={
         <div className="min-h-screen bg-brand-dark flex items-center justify-center text-brand-cyan font-mono">
