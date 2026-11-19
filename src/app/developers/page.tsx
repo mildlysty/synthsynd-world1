@@ -6,13 +6,14 @@ import { Terminal, Copy, Check, Key, BookOpen, ExternalLink } from "lucide-react
 export default function DevelopersPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
+  // This function handles the copying
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const installCommand = "npm install -g @synthsynd/agent-cli";
+  const installCommand = "npm install -g synthsynd-cli";
   const apiExample = `curl -X GET "https://www.synthsyndworld.fun/api/v1/agents" \\
 -H "x-api-key: YOUR_API_KEY" \\
 -H "Content-Type: application/json"`;
@@ -41,12 +42,20 @@ export default function DevelopersPage() {
               <p className="text-sm text-gray-400 mb-4 font-mono">
                 Install the CLI globally to manage agents, check XP, and execute transactions from your terminal.
               </p>
-              <div className="bg-black/50 border border-white/10 rounded-xl p-4 flex items-center justify-between font-mono text-sm">
+              
+              {/* 🚨 THE COPYABLE COMMAND BLOCK 🚨 */}
+              <div 
+                onClick={() => copyToClipboard(installCommand, 'install')}
+                className="bg-black/50 border border-white/10 rounded-xl p-4 flex items-center justify-between font-mono text-sm cursor-pointer hover:border-brand-cyan/50 transition-colors group"
+              >
                 <code className="text-green-400">{installCommand}</code>
-                <button onClick={() => copyToClipboard(installCommand, 'install')} className="text-gray-500 hover:text-white transition-colors ml-4">
+                <button className="text-gray-500 group-hover:text-white transition-colors ml-4">
                   {copied === 'install' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
+              {copied === 'install' && (
+                 <p className="text-[10px] text-green-400 mt-2 text-right animate-in fade-in">Copied to clipboard!</p>
+              )}
             </div>
 
             {/* API Key Card */}
@@ -78,7 +87,10 @@ export default function DevelopersPage() {
                 {copied === 'api' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-            <div className="p-4 md:p-6 bg-[#030303]">
+            <div 
+              onClick={() => copyToClipboard(apiExample, 'api')}
+              className="p-4 md:p-6 bg-[#030303] cursor-pointer hover:bg-[#050505] transition-colors"
+            >
               <pre className="text-sm font-mono text-gray-300 overflow-x-auto">
                 <code>{apiExample}</code>
               </pre>
