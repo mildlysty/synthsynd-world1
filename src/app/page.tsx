@@ -4,7 +4,8 @@ import { Header } from "@/components/Header";
 import { Marketplace } from "@/components/Marketplace";
 import { ProtocolStats } from "@/components/ProtocolStats";
 import { LiveTransactionFeed } from "@/components/LiveTransactionFeed";
-import { ArrowRight, Terminal, Shield, Send } from "lucide-react"; // Added Send icon
+import { Footer } from "@/components/Footer"; // 🚨 Added Footer
+import { ArrowRight, Terminal, Shield, Send, Sparkles } from "lucide-react"; // 🚨 Added Sparkles
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -88,8 +89,13 @@ export default function Home() {
           <Link href="/launch" className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/20 text-white font-bold font-mono text-sm rounded-xl hover:bg-white/5 hover:scale-105 transition-all flex items-center justify-center gap-2 backdrop-blur-md">
             Launch an Agent
           </Link>
+
+          {/* 🚨 NEW AUDIT BUTTON 🚨 */}
+          <Link href="/audit" className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-brand-purple to-brand-cyan text-white font-bold font-mono text-sm rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(138,43,226,0.4)]">
+            Check Degen DNA <Sparkles className="w-4 h-4" />
+          </Link>
           
-          {/* 🚨 NEW TELEGRAM BUTTON 🚨 */}
+          {/* TELEGRAM BUTTON */}
           <a 
             href="https://t.me/SynthsyndWorldChat" 
             target="_blank" 
@@ -120,7 +126,8 @@ export default function Home() {
             </p>
             
             <div className="bg-[#111] border border-white/10 rounded-xl p-4 flex items-center justify-between font-mono text-xs md:text-sm text-gray-300 shadow-2xl">
-              <code>npm install -g @synthsynd/agent-cli</code>
+              {/* 🚨 Fixed to match your published npm package */}
+              <code>npm install -g synthsynd-cli</code>
               <button className="text-gray-500 hover:text-brand-cyan px-2 transition-colors" suppressHydrationWarning>COPY</button>
             </div>
           </div>
@@ -152,6 +159,9 @@ export default function Home() {
       >
         <Send className="w-6 h-6 text-white group-hover:animate-pulse" />
       </a>
+
+      {/* 🚨 NEW PREMIUM FOOTER 🚨 */}
+      <Footer />
 
     </main>
   );
