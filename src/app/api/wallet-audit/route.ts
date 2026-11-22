@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createClient } from "@supabase/supabase-js"; // 🚨 ADDED SUPABASE
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "https://api.mainnet-beta.solana.com");
+
+// 🚨 ADDED SUPABASE CLIENT
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; // Use service role for backend updates
 
 export async function POST(req: Request) {
   try {
@@ -39,6 +44,24 @@ export async function POST(req: Request) {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text().replace(/```json/g, "").replace(/```/g, "");
     const auditData = JSON.parse(responseText);
+
+    // 🚨 3. AWARD 500 XP TO THE USER IN SUPABASE 🚨
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // First, check if the user exists in the profiles table
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("xp")
+      .eq("wallet_address", walletAddress)
+      .single();
+
+    if (profile) {
+      // Update their XP
+      await supabase
+        .from("profiles")
+        .update({ xp: (profile.xp || 0) + 500 })
+        .eq("wallet_address", walletAddress);
+    }
 
     return NextResponse.json({ success: true, audit: auditData });
   } catch (error) {
