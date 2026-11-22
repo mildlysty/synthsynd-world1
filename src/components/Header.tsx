@@ -29,9 +29,10 @@ export const Header = () => {
     setMounted(true);
   }, []);
 
-  // Updated Navigation Links as requested
+  // Navigation Links (Added AUDIT)
   const navLinks = [
     { name: "MARKETPLACE", href: "/" },
+    { name: "AUDIT", href: "/audit" }, 
     { name: "NETWORK", href: "/network" },
     { name: "DEVELOPERS", href: "/developers" },
     { name: "PROFILE", href: "/profile", highlight: true },
