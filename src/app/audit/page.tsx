@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Shield, Sparkles, TrendingUp, Share2, Loader2 } from "lucide-react";
+import { Sparkles, TrendingUp, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function WalletAuditPage() {
   const { publicKey, connected } = useWallet();
   const [loading, setLoading] = useState(false);
   const [audit, setAudit] = useState<any>(null);
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const generateAudit = async () => {
     if (!publicKey) return toast.error("Connect your wallet first!");
@@ -24,7 +27,7 @@ export default function WalletAuditPage() {
       
       if (data.success) {
         setAudit(data.audit);
-        toast.success("Audit complete! Share your Degen DNA.");
+        toast.success("Audit complete! +500 XP added.");
       } else {
         toast.error(data.error || "Failed to generate audit.");
       }
@@ -43,7 +46,6 @@ export default function WalletAuditPage() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white flex flex-col items-center pt-32 pb-20 px-4 relative overflow-hidden">
-      {/* Background Glow */}
       <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-cyan/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="text-center mb-10 relative z-10">
@@ -57,17 +59,17 @@ export default function WalletAuditPage() {
 
       <div className="w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 relative overflow-hidden z-10 shadow-2xl">
         
-        {!connected && (
+        {!connected && mounted && (
           <div className="flex flex-col items-center py-6">
             <p className="text-gray-400 mb-6 font-mono text-sm">Connect your wallet to begin.</p>
-            <WalletMultiButton className="!bg-brand-cyan !text-black !font-bold !rounded-xl !h-12 !px-8" />
+            <WalletMultiButton className="!bg-[#2af5d2] !text-black !font-bold !rounded-xl !h-12 !px-8 hover:!bg-[#20d4b6] !transition-all" />
           </div>
         )}
 
         {connected && !audit && !loading && (
           <button 
             onClick={generateAudit} 
-            className="w-full py-4 bg-brand-cyan text-black font-bold rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 bg-[#2af5d2] text-black font-bold text-lg rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(42,245,210,0.3)]"
           >
             <TrendingUp className="w-5 h-5" /> Analyze My Wallet
           </button>
@@ -77,7 +79,6 @@ export default function WalletAuditPage() {
           <div className="flex flex-col items-center py-10">
             <Loader2 className="w-10 h-10 animate-spin text-brand-cyan mb-4" />
             <p className="font-mono text-sm text-gray-400 animate-pulse">Scanning the Solana blockchain...</p>
-            <p className="font-mono text-xs text-gray-600 mt-2">Running AI analysis...</p>
           </div>
         )}
 
@@ -111,7 +112,7 @@ export default function WalletAuditPage() {
               onClick={shareOnX} 
               className="w-full py-3 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
             >
-              <Share2 className="w-4 h-4" /> Share on X (Earn 500 XP)
+              <Share2 className="w-4 h-4" /> Share on X
             </button>
 
             <button 
