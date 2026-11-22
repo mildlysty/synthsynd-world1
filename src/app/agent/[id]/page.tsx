@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Loader2, ArrowLeft, Copy, Check, ExternalLink, ShieldCheck } from "lucide-react";
@@ -14,7 +14,8 @@ const GithubIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function AgentDetailPage() {
+// 1. We put all the actual page logic into this inner component
+function AgentDetailContent() {
   const params = useParams();
   const id = params?.id as string;
   
@@ -59,7 +60,6 @@ export default function AgentDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white pt-24 px-4 md:px-6 pb-20 relative overflow-hidden">
-      
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-cyan/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
@@ -143,5 +143,18 @@ export default function AgentDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 2. This is the main export that wraps the content in Suspense to fix the Next.js error
+export default function AgentDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+        <Loader2 className="animate-spin text-brand-cyan w-10 h-10" />
+      </div>
+    }>
+      <AgentDetailContent />
+    </Suspense>
   );
 }
