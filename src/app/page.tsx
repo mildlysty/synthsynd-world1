@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Marketplace } from "@/components/Marketplace";
 import { ProtocolStats } from "@/components/ProtocolStats";
 import { LiveTransactionFeed } from "@/components/LiveTransactionFeed";
-import { ArrowRight, Terminal, Shield } from "lucide-react";
+import { ArrowRight, Terminal, Shield, Send } from "lucide-react"; // Added Send icon
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -29,28 +29,6 @@ export default function Home() {
       </div>
 
       <Header />
-
-      {/* 🚨 LIVE STREAM BANNER (THE FLEX) 🚨 */}
-      <div className="w-full bg-gradient-to-r from-red-900/40 via-purple-900/40 to-red-900/40 border-b border-red-500/30 flex items-center justify-center py-2.5 px-4 relative z-50 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_10px_#ef4444]"></span>
-          </span>
-          <p className="text-white font-mono text-xs md:text-sm font-bold tracking-wider">
-            DEV IS LIVE ON PUMP.FUN RIGHT NOW. 
-            <a 
-              href="https://pump.fun" // 👈 REPLACE THIS WITH YOUR ACTUAL PUMP.FUN STREAM LINK
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="underline text-red-300 hover:text-white transition-colors ml-2"
-            >
-              CLICK TO WATCH
-            </a>
-          </p>
-        </div>
-      </div>
-      {/* ---------------------------------- */}
 
       <div className="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
         
@@ -102,7 +80,7 @@ export default function Home() {
         {/* ACTION BUTTONS */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 w-full"
+          className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 mb-16 w-full"
         >
           <Link href="/directives" className="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold font-mono text-sm rounded-xl hover:bg-gray-200 hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
             Open Marketplace <ArrowRight className="w-4 h-4" />
@@ -110,6 +88,16 @@ export default function Home() {
           <Link href="/launch" className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/20 text-white font-bold font-mono text-sm rounded-xl hover:bg-white/5 hover:scale-105 transition-all flex items-center justify-center gap-2 backdrop-blur-md">
             Launch an Agent
           </Link>
+          
+          {/* 🚨 NEW TELEGRAM BUTTON 🚨 */}
+          <a 
+            href="https://t.me/SynthsyndWorldChat" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-8 py-4 bg-[#229ED9]/10 border border-[#229ED9]/50 text-[#229ED9] font-bold font-mono text-sm rounded-xl hover:bg-[#229ED9] hover:text-white hover:scale-105 transition-all flex items-center justify-center gap-2 backdrop-blur-md"
+          >
+            Join Telegram <Send className="w-4 h-4" />
+          </a>
         </motion.div>
 
         {/* LIVE STATS */}
@@ -153,6 +141,17 @@ export default function Home() {
       <div className="mt-32">
         <Marketplace />
       </div>
+
+      {/* 🚨 FLOATING TELEGRAM BUTTON 🚨 */}
+      <a 
+        href="https://t.me/SynthsyndWorldChat" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-[100] bg-[#229ED9] p-4 rounded-full shadow-[0_0_20px_rgba(34,158,217,0.5)] hover:scale-110 transition-transform flex items-center justify-center group"
+        aria-label="Join Telegram"
+      >
+        <Send className="w-6 h-6 text-white group-hover:animate-pulse" />
+      </a>
 
     </main>
   );
