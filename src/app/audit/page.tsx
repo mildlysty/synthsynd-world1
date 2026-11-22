@@ -11,6 +11,7 @@ export default function WalletAuditPage() {
   const [loading, setLoading] = useState(false);
   const [audit, setAudit] = useState<any>(null);
   
+  // This prevents the wallet button hydration glitch in Next.js
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -29,11 +30,12 @@ export default function WalletAuditPage() {
         setAudit(data.audit);
         toast.success("Audit complete! +500 XP added.");
       } else {
+        // 🚨 Shows the REAL error from the backend
         toast.error(data.error || "Failed to generate audit.");
       }
     } catch (error) {
       console.error(error);
-      toast.error("Something went wrong.");
+      toast.error("Network error. Failed to reach the server.");
     } finally {
       setLoading(false);
     }
@@ -46,6 +48,7 @@ export default function WalletAuditPage() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white flex flex-col items-center pt-32 pb-20 px-4 relative overflow-hidden">
+      {/* Background Glow */}
       <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-cyan/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="text-center mb-10 relative z-10">
@@ -59,6 +62,7 @@ export default function WalletAuditPage() {
 
       <div className="w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 relative overflow-hidden z-10 shadow-2xl">
         
+        {/* Connect Wallet State */}
         {!connected && mounted && (
           <div className="flex flex-col items-center py-6">
             <p className="text-gray-400 mb-6 font-mono text-sm">Connect your wallet to begin.</p>
@@ -66,6 +70,7 @@ export default function WalletAuditPage() {
           </div>
         )}
 
+        {/* Analyze Button State */}
         {connected && !audit && !loading && (
           <button 
             onClick={generateAudit} 
@@ -75,13 +80,16 @@ export default function WalletAuditPage() {
           </button>
         )}
 
+        {/* Loading State */}
         {loading && (
           <div className="flex flex-col items-center py-10">
             <Loader2 className="w-10 h-10 animate-spin text-brand-cyan mb-4" />
             <p className="font-mono text-sm text-gray-400 animate-pulse">Scanning the Solana blockchain...</p>
+            <p className="font-mono text-xs text-gray-600 mt-2">Running AI analysis...</p>
           </div>
         )}
 
+        {/* Audit Result State */}
         {audit && (
           <div className="animate-in fade-in zoom-in duration-500">
             <div className="text-center mb-6">

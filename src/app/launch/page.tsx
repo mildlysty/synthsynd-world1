@@ -1,238 +1,122 @@
 "use client";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Header } from "@/components/Header";
-import { GridBackground } from "@/components/GridBackground";
+
+import React, { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Terminal, Shield, Cpu, CheckCircle, Wallet } from "lucide-react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, Transaction } from "@solana/web3.js";
-import { 
-  getAssociatedTokenAddress, 
-  createTransferInstruction, 
-  createAssociatedTokenAccountInstruction 
-} from "@solana/spl-token";
+import { useRouter } from "next/navigation";
+import { Loader2, Upload, Link as LinkIcon, Terminal } from "lucide-react";
+import { toast } from "sonner";
 
-const TOKEN_MINT = new PublicKey("5kkYSNkWgn6DCkTkPRbKKEZtmzVzVWXSR9R9PK5Ppump");
-const LAUNCH_FEE = 1000; // 1,000 $SSDY launch fee
+const CATEGORIES = ["Commerce", "Legal", "Gaming", "Healthcare", "Finance", "Education", "Technology", "Marketing", "Sales", "Customer Support", "Research", "Public Safety", "Other"];
 
-export default function Launchpad() {
-  const { publicKey, sendTransaction } = useWallet();
-  const { connection } = useConnection();
-  
-  const [step, setStep] = useState(1);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+export default function PublishPage() {
+  const { publicKey } = useWallet();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    ticker: "",
-    liquidity: "10.0"
+    category: "Technology",
+    type: "Agent",
+    prompt: "",
+    endpoint_url: "",
   });
 
-  const nextStep = async () => {
-    if (step === 3) {
-      if (!publicKey) {
-        setErrorMsg("Please connect your wallet first.");
-        return;
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!publicKey) return toast.error("Connect your wallet to publish.");
+    if (!formData.name || !formData.description) return toast.error("Name and Description are required.");
 
-      const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_WALLET;
-      if (!treasuryAddress) {
-        setErrorMsg("Treasury wallet address is missing in .env.local");
-        return;
-      }
+    setLoading(true);
 
-      setIsDeploying(true);
-      setErrorMsg("");
+    // 🚨 100% FREE: Just insert into database, no transactions!
+    const { error } = await supabase.from("agents").insert({
+      name: formData.name,
+      description: formData.description,
+      capability: formData.category,
+      category: formData.category,
+      type: formData.type,
+      price_sol: 0, 
+      prompt: formData.prompt,
+      endpoint_url: formData.endpoint_url,
+      creator_wallet: publicKey.toBase58(),
+      creator_username: "Dev_" + publicKey.toBase58().slice(0, 4),
+      ticker: formData.name.slice(0, 4).toUpperCase()
+    });
 
-      try {
-        const treasuryWallet = new PublicKey(treasuryAddress);
+    setLoading(false);
 
-        // 1. Get Token Accounts
-        const fromTokenAccount = await getAssociatedTokenAddress(TOKEN_MINT, publicKey);
-        const toTokenAccount = await getAssociatedTokenAddress(TOKEN_MINT, treasuryWallet);
-        
-        // Standard pump.fun tokens have 6 decimals
-        const amountToSend = LAUNCH_FEE * Math.pow(10, 6);
-
-        const transaction = new Transaction();
-
-        // 2. Check if Treasury has a $SSDY account. If not, create it.
-        const accountInfo = await connection.getAccountInfo(toTokenAccount);
-        if (accountInfo === null) {
-          transaction.add(
-            createAssociatedTokenAccountInstruction(
-              publicKey, // Payer
-              toTokenAccount, // New account
-              treasuryWallet, // Owner
-              TOKEN_MINT // Mint
-            )
-          );
-        }
-
-        // 3. Add Transfer Instruction
-        transaction.add(
-          createTransferInstruction(
-            fromTokenAccount,
-            toTokenAccount,
-            publicKey,
-            amountToSend
-          )
-        );
-
-        // 4. Send Transaction
-        const signature = await sendTransaction(transaction, connection);
-        
-        // Wait for confirmation
-        await connection.confirmTransaction(signature, "confirmed");
-
-        // 5. Save to Database only after payment succeeds
-        const { error } = await supabase.from("agents").insert([
-          {
-            name: formData.name,
-            description: formData.description,
-            ticker: formData.ticker,
-            creator_wallet: publicKey.toBase58(),
-          }
-        ]);
-
-        if (error) throw error;
-        setIsSuccess(true);
-      } catch (err: any) {
-        console.error("Transaction Error:", err);
-        setErrorMsg("Transaction failed. Ensure you have enough $SSDY and a small amount of SOL for network fees.");
-      } finally {
-        setIsDeploying(false);
-      }
+    if (error) {
+      toast.error("Failed to publish: " + error.message);
     } else {
-      setStep((prev) => Math.min(prev + 1, 3));
+      toast.success("Successfully Published for FREE!");
+      router.push("/");
     }
   };
 
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
-
   return (
-    <main className="min-h-screen relative overflow-hidden bg-brand-dark pt-32 pb-20 px-6">
-      <GridBackground />
-      <Header />
+    <div className="min-h-screen bg-[#030303] text-white pt-32 pb-20 px-4 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-cyan/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto relative z-10">
+      <div className="max-w-2xl mx-auto bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 md:p-12 relative z-10 shadow-2xl">
         
-        <div className="mb-12 border-b border-white/10 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 font-mono text-xs text-brand-cyan mb-3 bg-brand-cyan/10 w-fit px-3 py-1 rounded-full border border-brand-cyan/20">
-              <Cpu className="w-4 h-4" /> SYSTEM.READY
-            </div>
-            <h1 className="text-3xl md:text-5xl font-display font-bold">
-              Initialize <span className="text-white/40">Agent</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 bg-brand-purple/10 border border-brand-purple/20 px-4 py-2 rounded-lg">
-            <Wallet className="w-4 h-4 text-brand-purple" />
-            <span className="font-mono text-xs text-brand-purple">Launch Fee: {LAUNCH_FEE.toLocaleString()} $SSDY</span>
+        <div className="flex items-center gap-3 mb-8 border-b border-white/10 pb-6">
+          <Terminal className="w-6 h-6 text-brand-cyan" />
+          <div>
+            <h1 className="text-2xl font-bold">Initialize Agent</h1>
+            <p className="text-green-400 text-xs font-mono mt-1">SYSTEM_READY_TO_DEPLOY (100% FREE)</p>
           </div>
         </div>
 
-        <div className="bg-[#0a0a0f]/80 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl overflow-hidden relative">
-          <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-gray-400" />
-              <span className="font-mono text-xs text-gray-400">synthsynd_deploy.sh</span>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          <div>
+            <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider">Agent Identifier</label>
+            <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-cyan outline-none font-mono text-sm" placeholder="e.g. Athena_Alpha_01" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider">Execution Directive (Description)</label>
+            <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-cyan outline-none h-24 text-sm" placeholder="Describe the core logic and purpose of this agent..." />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider">Category</label>
+              <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none font-mono text-sm">
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-            <div className="flex gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+            <div>
+              <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider">Type</label>
+              <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none font-mono text-sm">
+                <option value="Agent">Live AI Agent</option>
+                <option value="Tool">API / Tool</option>
+                <option value="Bundle">Multi-Agent Bundle</option>
+              </select>
             </div>
           </div>
 
-          <div className="p-8 md:p-12 min-h-[450px] flex flex-col justify-between relative">
-            <AnimatePresence mode="wait">
-              
-              {step === 1 && !isSuccess && (
-                <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                  <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                    <h2 className="font-mono text-sm text-brand-cyan">01. AGENT_DEFINITION</h2>
-                    <Shield className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block font-mono text-[10px] text-gray-500 mb-2 uppercase tracking-widest">Agent Identifier</label>
-                      <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Athena_Alpha_01" className="w-full bg-black/50 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-brand-cyan font-mono text-sm" suppressHydrationWarning autoComplete="off" />
-                    </div>
-                    <div>
-                      <label className="block font-mono text-[10px] text-gray-500 mb-2 uppercase tracking-widest">Execution Directive (Prompt)</label>
-                      <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the core logic and purpose of this agent..." rows={4} className="w-full bg-black/50 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-brand-cyan font-mono text-sm resize-none" suppressHydrationWarning />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 2 && !isSuccess && (
-                <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                  <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                    <h2 className="font-mono text-sm text-brand-purple">02. TOKEN_PARAMETERS</h2>
-                    <Shield className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block font-mono text-[10px] text-gray-500 mb-2 uppercase tracking-widest">Ticker Symbol</label>
-                      <input type="text" value={formData.ticker} onChange={(e) => setFormData({ ...formData, ticker: e.target.value })} placeholder="e.g. $ATH" className="w-full bg-black/50 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-brand-purple font-mono text-sm" suppressHydrationWarning autoComplete="off" />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 3 && !isSuccess && (
-                <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-center space-y-6 py-8">
-                  <div className="w-16 h-16 mx-auto bg-brand-cyan/10 border border-brand-cyan/30 rounded-lg flex items-center justify-center mb-6">
-                    <Terminal className="w-8 h-8 text-brand-cyan" />
-                  </div>
-                  <h2 className="text-xl font-mono text-white">SYSTEM_READY_TO_DEPLOY</h2>
-                  <p className="font-mono text-xs text-gray-400 max-w-sm mx-auto">
-                    Clicking execute will prompt your wallet to sign a transaction for the <strong>{LAUNCH_FEE.toLocaleString()} $SSDY</strong> launch fee.
-                  </p>
-                  {errorMsg && (
-                     <div className="bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-xs p-3 rounded-lg max-w-sm mx-auto">
-                       {errorMsg}
-                     </div>
-                  )}
-                </motion.div>
-              )}
-
-              {isSuccess && (
-                <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 py-8">
-                  <div className="w-20 h-20 mx-auto bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle className="w-10 h-10 text-green-400" />
-                  </div>
-                  <h2 className="text-2xl font-display font-bold text-white">Agent Deployed Successfully!</h2>
-                  <p className="font-mono text-sm text-gray-400 max-w-sm mx-auto">
-                    Transaction confirmed on Solana. Your agent is now live in the database.
-                  </p>
-                  <a href="/#agents" className="inline-block mt-4 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-mono text-sm rounded-lg transition-colors">
-                    VIEW IN MARKETPLACE
-                  </a>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {!isSuccess && (
-              <div className="flex justify-between items-center mt-10 pt-6 border-t border-white/5">
-                <button onClick={prevStep} disabled={step === 1 || isDeploying} className={`font-mono text-xs px-4 py-2 transition-all ${step === 1 || isDeploying ? 'opacity-0' : 'text-gray-500 hover:text-white'}`} suppressHydrationWarning>
-                  [ CANCEL ]
-                </button>
-                <button onClick={nextStep} disabled={isDeploying} className={`flex items-center gap-2 px-6 py-3 font-mono text-sm transition-all rounded-md ${isDeploying ? 'bg-brand-cyan/50 text-black cursor-wait' : 'bg-brand-cyan/10 border border-brand-cyan/50 text-brand-cyan hover:bg-brand-cyan hover:text-black'}`} suppressHydrationWarning>
-                  {isDeploying ? "SIGNING TRANSACTION..." : step === 3 ? "PAY & DEPLOY" : "CONTINUE"}
-                  {!isDeploying && step !== 3 && <ArrowRight size={16} />}
-                </button>
-              </div>
-            )}
+          <div>
+            <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+              <LinkIcon className="w-3 h-3" /> Live App URL (Optional)
+            </label>
+            <input type="url" value={formData.endpoint_url} onChange={(e) => setFormData({...formData, endpoint_url: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-cyan outline-none font-mono text-sm" placeholder="https://your-streamlit-app.streamlit.app" />
           </div>
-        </div>
+
+          <div>
+            <label className="block text-xs font-mono text-gray-400 mb-2 uppercase tracking-wider">System Prompt (Optional)</label>
+            <textarea value={formData.prompt} onChange={(e) => setFormData({...formData, prompt: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-brand-cyan outline-none h-24 font-mono text-sm" placeholder="You are a helpful AI assistant..." />
+          </div>
+
+          <button disabled={loading} type="submit" className="w-full py-4 bg-brand-cyan text-black font-bold rounded-xl hover:bg-[#20d4b6] transition-all flex items-center justify-center gap-2 mt-4">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+            {loading ? "Deploying..." : "EXECUTE DEPLOYMENT (FREE)"}
+          </button>
+        </form>
+
       </div>
-    </main>
+    </div>
   );
 }
