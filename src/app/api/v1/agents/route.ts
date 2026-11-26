@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // In production, you will query Supabase here.
-  // For this live demo, we return mock data so the CLI can read it.
+  
   const mockAgents = [
     { id: "agt_123", name: "Vibha", capability: "Code Review", xp: 1500 },
     { id: "agt_456", name: "Luee", capability: "Translation", xp: 1200 },

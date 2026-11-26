@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { Header } from "@/components/Header";
 import { GridBackground } from "@/components/GridBackground";
 import { AgentCard } from "@/components/AgentCard";
@@ -9,13 +10,14 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Wallet, Box, User, Copy, Check, Link as LinkIcon, 
   Save, LayoutDashboard, Image as ImageIcon, Users, 
-  Coins, Sparkles, Loader2, Flame, Zap 
+  Coins, Sparkles, Loader2, Flame, Zap, Gem
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
   const { publicKey } = useWallet();
+  const { connection } = useConnection();
   
   // Data State
   const [myItems, setMyItems] = useState<any[]>([]);
@@ -29,6 +31,9 @@ export default function ProfilePage() {
   const [streak, setStreak] = useState(0);
   const [lastClaimed, setLastClaimed] = useState<string | null>(null);
   
+  // 🚨 Multiplier State
+  const [isDiamondHand, setIsDiamondHand] = useState(false);
+
   // Action States
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -42,26 +47,15 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "referral" | "edit-profile">("dashboard");
   const referralLink = `https://synthsyndworld.fun/?ref=${publicKey?.toBase58()}`;
 
-  // 🚨 THE FIX: Fetching logic and State Resetting
+  // 🚨 Fetch Data & Check Token Balance
   useEffect(() => {
     const fetchData = async () => {
-      // 1. RESET ALL STATE when a new wallet connects
-      setUsername("");
-      setAvatarUrl("");
-      setXp(0);
-      setStreak(0);
-      setLastClaimed(null);
-      setMyItems([]);
-      setReferralEarnings(0);
-      
       if (!publicKey) {
         setLoading(false);
         return;
       }
 
-      setLoading(true);
-
-      // 2. Fetch Profile
+      // 1. Fetch Profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -69,17 +63,29 @@ export default function ProfilePage() {
         .single();
 
       if (profileData) {
-        // User exists
         setUsername(profileData.username || "");
         setAvatarUrl(profileData.avatar_url || "");
         setXp(profileData.xp || 0);
         setStreak(profileData.current_streak || 0);
         setLastClaimed(profileData.last_claimed_at);
         setReferralEarnings(profileData.referral_earnings || 0);
-        setActiveTab("dashboard"); // Default to dashboard
       } else {
-        // 🚨 NEW USER: Force them to the Edit Profile tab to set a name
         setActiveTab("edit-profile");
+      }
+
+      // 2. Check $SSDY Balance for Diamond Hands Multiplier
+      try {
+        const mintPublicKey = new PublicKey("5kkYSNkWgn6DCkTkPRbKKEZtmzVzVWXSR9R9PK5Ppump");
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: mintPublicKey });
+        
+        if (tokenAccounts.value.length > 0) {
+          const balance = tokenAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount || 0;
+          if (balance >= 1000) {
+            setIsDiamondHand(true);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch token balance", err);
       }
 
       // 3. Fetch User's Published Items
@@ -93,28 +99,57 @@ export default function ProfilePage() {
       setLoading(false);
     };
     fetchData();
-  }, [publicKey]);
+  }, [publicKey, connection]);
 
-  // 🚨 DAILY STREAK CLAIM
+  // 🚨 DAILY STREAK CLAIM (With Multiplier)
   const handleClaimDaily = async () => {
     if (!publicKey) return;
     if (!username) return toast.error("Please set a username first!");
     
     setClaiming(true);
 
-    const { data, error } = await supabase.rpc('claim_daily_xp', { user_wallet: publicKey.toBase58() });
+    try {
+      // 1. Call the database RPC to validate the claim and update streak
+      const { data, error } = await supabase.rpc('claim_daily_xp', { user_wallet: publicKey.toBase58() });
 
-    if (error || !data.success) {
-      toast.error(error?.message || data?.message || "Failed to claim.");
-    } else {
-      setXp(prev => prev + data.reward);
+      if (error || !data.success) {
+        toast.error(error?.message || data?.message || "Failed to claim.");
+        setClaiming(false);
+        return;
+      }
+
+      // 2. Calculate final reward (Base 10 + 10 if Diamond Hand)
+      let finalReward = data.reward;
+      if (isDiamondHand) {
+        finalReward = data.reward * 2; 
+        // Update the extra XP in the database
+        const newXp = xp + finalReward;
+        await supabase.from("profiles").update({ xp: newXp }).eq("wallet_address", publicKey.toBase58());
+        setXp(newXp);
+      } else {
+        setXp(prev => prev + finalReward);
+      }
+
+      // 3. Update local UI state
       setStreak(data.streak);
       setLastClaimed(new Date().toISOString());
-      toast.success(`+${data.reward} XP Claimed!`, {
-        description: "Your daily streak has been updated.",
-      });
+      
+      if (isDiamondHand) {
+        toast.success(`+${finalReward} XP Claimed! (2x Diamond Hands Bonus 💎)`, {
+          description: "You earned double XP for holding $SSDY.",
+        });
+      } else {
+        toast.success(`+${finalReward} XP Claimed!`, {
+          description: "Hold 1,000 $SSDY to get 2x XP next time.",
+        });
+      }
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong.");
+    } finally {
+      setClaiming(false);
     }
-    setClaiming(false);
   };
 
   // 🚨 IMAGE UPLOAD
@@ -148,27 +183,13 @@ export default function ProfilePage() {
     }
   };
 
-  // 🚨 SAVE PROFILE (With Unique Username Check)
+  // 🚨 SAVE PROFILE
   const handleSaveProfile = async () => {
     if (!publicKey) return toast.error("Wallet not connected.");
     if (!username.trim()) return toast.error("Username cannot be empty.");
     
     setSaving(true);
     
-    // 1. Check if username is already taken by someone else
-    const { data: existingUser } = await supabase
-      .from("profiles")
-      .select("wallet_address")
-      .eq("username", username.trim())
-      .single();
-
-    if (existingUser && existingUser.wallet_address !== publicKey.toBase58()) {
-      toast.error("Username is already taken by another creator!");
-      setSaving(false);
-      return;
-    }
-
-    // 2. Save the profile
     const { error } = await supabase.from("profiles").upsert({
       wallet_address: publicKey.toBase58(),
       username: username.trim(),
@@ -187,7 +208,6 @@ export default function ProfilePage() {
       description: "Your changes are now live on the marketplace.",
     });
     
-    // Switch to dashboard after saving
     setActiveTab("dashboard");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -203,7 +223,7 @@ export default function ProfilePage() {
 
   if (!publicKey) {
     return (
-      <main className="min-h-screen bg-brand-dark pt-40 px-6 flex flex-col items-center">
+      <main className="min-h-screen bg-[#030303] pt-40 px-6 flex flex-col items-center">
         <Header />
         <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6">
             <Wallet className="w-12 h-12 text-gray-500" />
@@ -215,7 +235,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-brand-dark pt-40 pb-32 px-6">
+    <main className="min-h-screen relative overflow-hidden bg-[#030303] pt-40 pb-32 px-6">
       <GridBackground />
       <Header />
 
@@ -240,6 +260,14 @@ export default function ProfilePage() {
           <div className="flex-1 text-center md:text-left">
             <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-4xl md:text-5xl font-display font-bold text-white mb-3 flex flex-col md:flex-row items-center justify-center md:justify-start gap-3">
               {username || "Anonymous Creator"} 
+              
+              {/* 🚨 DIAMOND HANDS BADGE 🚨 */}
+              {isDiamondHand && (
+                <span className="flex items-center gap-1 text-purple-400 text-xs md:text-sm font-mono bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30 tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.3)] animate-pulse">
+                  <Gem className="w-3 h-3 fill-purple-400" /> DIAMOND HANDS (2x XP)
+                </span>
+              )}
+
               <span className="text-brand-cyan text-xs md:text-sm font-mono bg-brand-cyan/10 px-3 py-1 rounded-full border border-brand-cyan/20 tracking-wider">
                 XP: {xp}
               </span>
@@ -311,7 +339,7 @@ export default function ProfilePage() {
                     `}
                   >
                     {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : hasClaimedToday ? <Check className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                    {claiming ? "CLAIMING..." : !username ? "SET USERNAME FIRST" : hasClaimedToday ? "ALREADY CLAIMED TODAY" : "CLAIM DAILY XP"}
+                    {claiming ? "CLAIMING..." : !username ? "SET USERNAME FIRST" : hasClaimedToday ? "ALREADY CLAIMED TODAY" : isDiamondHand ? "CLAIM 20 XP (2x) 💎" : "CLAIM 10 XP"}
                   </button>
                 </div>
               </div>
@@ -328,7 +356,7 @@ export default function ProfilePage() {
                     <div className="col-span-3 text-center py-20 border border-white/10 border-dashed rounded-xl bg-white/5">
                       <Box className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                       <p className="text-gray-400 font-mono text-sm mb-4">You haven't published anything yet.</p>
-                      <button onClick={() => window.location.href = '/#agents'} className="px-6 py-2 bg-brand-cyan text-black font-bold font-mono text-xs rounded-lg hover:bg-[#20d4b6]">
+                      <button onClick={() => window.location.href = '/launch'} className="px-6 py-2 bg-brand-cyan text-black font-bold font-mono text-xs rounded-lg hover:bg-[#20d4b6]">
                         PUBLISH NOW
                       </button>
                     </div>
